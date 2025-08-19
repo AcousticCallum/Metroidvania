@@ -1,6 +1,7 @@
 using Cinemachine.Utility;
 using System.Collections;
 using System.Collections.Generic;
+using UnityEditor.Rendering;
 using UnityEngine;
 
 public class Enemy : Entity
@@ -8,6 +9,10 @@ public class Enemy : Entity
     [Space]
 
     public SpriteRenderer rend;
+
+    [Space]
+
+    public Enemy[] enemyGroup;
 
     [Space]
 
@@ -29,6 +34,7 @@ public class Enemy : Entity
         if (Detect())
         {
             DetectMove();
+            AlertEnemyGroup();
             chasing = true;
             return;
         }
@@ -43,29 +49,34 @@ public class Enemy : Entity
 
     private void OnCollisionEnter2D(Collision2D collision)
     {
-        if (collision.gameObject == Player.instance.gameObject)
-        {
-            stunTimer = stunDuration;
-            Health.Damage(collision.gameObject, damage);
-            return;
-        }
-
         // collision.gameObject.layer is in groundMask
         if (groundMask == (groundMask | (1 << collision.gameObject.layer)))
         {
-            if (Vector2.Angle(collision.GetContact(0).normal, Vector2.up) > groundAngle)
-            {
-                stunTimer = stunDuration;
-            }
+            // Angle is allowed for ground
+            if (Vector2.Angle(collision.GetContact(0).normal, Vector2.up) <= groundAngle) return;
         }
+
+        if (collision.gameObject == Player.instance.gameObject)
+        {
+            Health.TryDamage(collision.gameObject, damage);
+        }
+
+        stunTimer = stunDuration;
+        OnStun();
     }
 
     public override void OnDamage()
     {
+        AlertEnemyGroup();
         chasing = true;
     }
 
     public override void OnDie()
+    {
+
+    }
+
+    public virtual void OnStun()
     {
 
     }
@@ -101,7 +112,18 @@ public class Enemy : Entity
 
     }
 
-    private void OnDrawGizmos()
+    protected void AlertEnemyGroup()
+    {
+        if (enemyGroup != null && enemyGroup.Length > 0)
+        {
+            foreach (Enemy enemy in enemyGroup)
+            {
+                if (enemy) enemy.chasing = true;
+            }
+        }
+    }
+
+    protected virtual void OnDrawGizmos()
     {
         Gizmos.color = Color.magenta;
         Gizmos.DrawWireSphere(transform.position, detectionRadius);

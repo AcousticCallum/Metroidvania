@@ -221,6 +221,19 @@ public class Player : Entity
         }
     }
 
+    private void OnCollisionEnter2D(Collision2D collision)
+    {
+        if (collision.gameObject.TryGetComponent(out Destructible destructible))
+        {
+            if (destructible.dashOnly && !dashing) return;
+
+            if (destructible.TryDestruct(Vector2.Dot(collision.relativeVelocity, collision.GetContact(0).normal)))
+            {
+                rb.velocity += destructible.bounciness * collision.relativeVelocity; // Bounce
+            }
+        }
+    }
+
     public override void OnDamage()
     {
 

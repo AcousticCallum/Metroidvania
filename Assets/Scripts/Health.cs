@@ -60,13 +60,25 @@ public class Health : MonoBehaviour
         invincible = invincibilityTimer > 0.0f;
     }
 
-    public static bool Damage(GameObject target, float amount = 1.0f)
+    public static bool TryDamage(GameObject target, float amount = 1.0f)
     {
         if (target.TryGetComponent(out Health health))
         {
+            if(health.dead) return false;
+
             health.Damage(amount);
 
             return true;
+        }
+
+        return false;
+    }
+
+    public static bool IsDead(GameObject target)
+    {
+        if (target.TryGetComponent(out Health health))
+        {
+            return health.dead;
         }
 
         return false;
