@@ -17,6 +17,7 @@ public class Player : Entity
     [Space]
 
     public PlayerWeapon weapon;
+    public List<PlayerWeapon> weapons = new();
 
     [Space]
 
@@ -37,6 +38,8 @@ public class Player : Entity
     [Space]
 
     [SerializeField] private float jumpHeight;
+    [SerializeField] private int additionalJumpCount;
+    private int additionalJumpCounter;
 
     [Space]
 
@@ -52,6 +55,7 @@ public class Player : Entity
     [SerializeField] private float dashDuration;
     [SerializeField] private float dashCooldown;
     [SerializeField] private int dashCount;
+    [SerializeField] private LineRenderer dashLine;
 
     [Space]
 
@@ -106,16 +110,28 @@ public class Player : Entity
 
             Time.timeScale = Mathf.Lerp(Time.timeScale, DASH_TIME_SCALE, DASH_TIME_SCALE_RATE * Time.deltaTime);
 
+            Vector2 mousePos = Camera.main.ScreenToWorldPoint(Input.mousePosition);
+            Vector2 dashDirection = (mousePos - (Vector2)transform.position).normalized;
+
+            // On ground and dash direction is mostly horizontal
+            if (Grounded())
+            {
+                if (Vector2.Angle(dashDirection, Vector2.up) >= 60.0f)
+                {
+                    dashDirection.y = 0.0f;
+                    dashDirection.Normalize();
+                }
+            }
+
             if (!dashInput) // End dash
             {
-                Vector2 mousePos = Camera.main.ScreenToWorldPoint(Input.mousePosition);
-                Vector2 dashDirection = (mousePos - (Vector2)transform.position).normalized;
-
                 rb.velocity = dashDirection * dashSpeed;
 
                 Time.timeScale = 1.0f;
 
                 SoundManager.instance.PlaySound("Dash");
+
+                dashLine.gameObject.SetActive(false);
 
                 dashDurationTimer = dashDuration;
                 dashCooldownTimer = dashCooldown;
@@ -125,11 +141,24 @@ public class Player : Entity
                 dashCharging = false;
                 dashing = true;
             }
+            else
+            {
+                dashLine.gameObject.SetActive(true);
+                dashLine.transform.rotation = Quaternion.Euler(0.0f, 0.0f, Vector2.SignedAngle(Vector2.right, dashDirection));
+            }
         }
 
         bool dashOngoing = dashCharging || dashing;
 
         rig.weight = dashOngoing ? 0.0f : 1.0f;
+
+        // Change Weapon
+        int weaponChangeInput = CheckNumberInputs();
+        if (weaponChangeInput >= 0 && weaponChangeInput < weapons.Count)
+        {
+            weapon.Deactivate();
+            weapon = weapons[weaponChangeInput];
+        }
 
         // Aim
         bool aimInput = Input.GetButton("Fire");
@@ -139,21 +168,26 @@ public class Player : Entity
         weapon.weaponEnd.gameObject.SetActive(!dashOngoing);
 
         /// Grounded check
+        bool grounded = false;
         if (Grounded())
         {
-            if (jumpBufferTimer > 0.0f && rb.velocity.y < 0.01f)
-            {
-                coyoteTimer = 0.0f;
-                jumpBufferTimer = 0.0f;
+            additionalJumpCounter = additionalJumpCount;
 
-                float newVelocityY = Mathf.Sqrt(jumpHeight * -Physics2D.gravity.y * 2.0f);
+            grounded = true;
+        }
 
-                rb.velocity = new Vector2(rb.velocity.x, newVelocityY);
+        if (jumpBufferTimer > 0.0f && (grounded || additionalJumpCounter > 0))
+        {
+            float newVelocityY = Mathf.Sqrt(jumpHeight * -Physics2D.gravity.y * 2.0f);
+            rb.velocity = new Vector2(rb.velocity.x, newVelocityY);
 
-                if (!dashOngoing) animator.SetTrigger("Jump");
+            if (!dashOngoing) animator.SetTrigger("Jump");
+            SoundManager.instance.PlaySound("Jump");
 
-                SoundManager.instance.PlaySound("Jump");
-            }
+            coyoteTimer = 0.0f;
+            jumpBufferTimer = 0.0f;
+
+            if (!grounded) additionalJumpCounter--;
         }
 
         /// Other
@@ -186,7 +220,7 @@ public class Player : Entity
 
         if (dashOngoing)
         {
-            animator.transform.RotateAround(cameraTarget.position, Vector3.forward, Time.deltaTime * dashSpinSpeed * -rb.velocityX);
+            animator.transform.RotateAround(GetCenter(), Vector3.forward, Time.deltaTime * dashSpinSpeed * -rb.velocityX);
         }
         else
         {
@@ -227,9 +261,11 @@ public class Player : Entity
         {
             if (destructible.dashOnly && !dashing) return;
 
-            if (destructible.TryDestruct(Vector2.Dot(collision.relativeVelocity, collision.GetContact(0).normal)))
+            Vector2 normal = collision.GetContact(0).normal;
+            float speed = Vector2.Dot(collision.relativeVelocity, normal);
+            if (destructible.TryDestruct(speed))
             {
-                rb.velocity += destructible.bounciness * collision.relativeVelocity; // Bounce
+                rb.velocity += destructible.bounciness * speed * normal; // Bounce
             }
         }
     }
@@ -246,7 +282,7 @@ public class Player : Entity
 
     public bool Grounded()
     {
-        return coyoteTimer > 0.0f;
+        return coyoteTimer > 0.0f && rb.velocity.y < 0.01f;
     }
 
     public Vector2 GetCenter()
@@ -257,6 +293,16 @@ public class Player : Entity
     private void ReloadScene()
     {
         SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
+    }
+
+    private int CheckNumberInputs()
+    {
+        if (Input.GetKeyDown(KeyCode.Alpha1)) return 0;
+        if (Input.GetKeyDown(KeyCode.Alpha2)) return 1;
+        if (Input.GetKeyDown(KeyCode.Alpha3)) return 2;
+        if (Input.GetKeyDown(KeyCode.Alpha4)) return 3;
+        if (Input.GetKeyDown(KeyCode.Alpha5)) return 4;
+        return -1;
     }
 
     private void OnDrawGizmos()

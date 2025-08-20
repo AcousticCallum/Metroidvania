@@ -58,7 +58,7 @@ public class Enemy : Entity
 
         if (collision.gameObject == Player.instance.gameObject)
         {
-            Health.TryDamage(collision.gameObject, damage);
+            Health.TryDamage(collision.gameObject, damage, gameObject);
         }
 
         stunTimer = stunDuration;

@@ -8,7 +8,7 @@ using static UnityEngine.EventSystems.EventTrigger;
 
 public class Health : MonoBehaviour
 {
-    private const float deathHeight = -10.0f;
+    private const float deathHeight = -25.0f;
 
     public ParticleSystem deathEffect;
 
@@ -28,6 +28,10 @@ public class Health : MonoBehaviour
     public float invincibilityDuration;
     private float invincibilityTimer;
     private bool invincible;
+
+    [Space]
+
+    public LayerMask invulnerableMask;
 
     [Space]
 
@@ -60,11 +64,14 @@ public class Health : MonoBehaviour
         invincible = invincibilityTimer > 0.0f;
     }
 
-    public static bool TryDamage(GameObject target, float amount = 1.0f)
+    public static bool TryDamage(GameObject target, float amount = 1.0f, GameObject source = null)
     {
         if (target.TryGetComponent(out Health health))
         {
             if(health.dead) return false;
+
+            // Source is in mask
+            if (health.invulnerableMask == (health.invulnerableMask | (1 << source.layer))) return false;
 
             health.Damage(amount);
 

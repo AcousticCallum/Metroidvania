@@ -32,7 +32,7 @@ public class Projectile : MonoBehaviour
 
     private void OnCollisionEnter2D(Collision2D collision)
     {
-        Health.TryDamage(collision.gameObject, damage);
+        Health.TryDamage(collision.gameObject, damage, gameObject);
 
         Die();
     }

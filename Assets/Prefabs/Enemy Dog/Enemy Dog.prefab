@@ -964,7 +964,7 @@ Rigidbody2D:
   m_Material: {fileID: 6200000, guid: 73abfcdf16983bf49b8d01bf9394ff9f, type: 2}
   m_IncludeLayers:
     serializedVersion: 2
-    m_Bits: 456
+    m_Bits: 968
   m_ExcludeLayers:
     serializedVersion: 2
     m_Bits: 0
@@ -1023,6 +1023,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   rb: {fileID: 2972735646352157391}
   rend: {fileID: 2331288616886595110}
+  enemyGroup: []
   detectionRadius: 3.5
   damage: 2.25
   stunDuration: 0.35
@@ -1060,6 +1061,9 @@ MonoBehaviour:
   damageFlashDuration: 0.1
   maxHealth: 5
   invincibilityDuration: 0
+  invulnerableMask:
+    serializedVersion: 2
+    m_Bits: 0
   disableOnDeath: 0
   damageSound: EnemyDamage
   dieSound: EnemyDie
